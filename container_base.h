@@ -41,7 +41,7 @@ class memory_allocator {
     size_t _malloc_size;
 
     void _alloc_range_check(size_t index) {
-      if(index >= _malloc_size) throw out_of_range(
+      if(index > _malloc_size) throw out_of_range(
           MEMEORY_ALLOCATOR_INFO("_alloc_range_check()::allocate out of range")
         );
     }
@@ -74,12 +74,13 @@ class memory_allocator {
     memory_allocator() { _initialize(); }
     size_t _get_malloc_size() { return _malloc_size; }
     void _alloc_at(size_t index, size_t alloc_size) {
-      if(_empty_alloc(alloc_size)) return;
       _alloc_range_check(index);
+      if(_empty_alloc(alloc_size)) return;
       alloc_unit<T> *new_node, *tmp = _head;
       for(size_t i = 0; i < index; ++i) tmp = tmp->right_node;
       new_node = new alloc_unit<T>(alloc_size, tmp->left_node, tmp);
-      (tmp->left_node)->right_node = new_node;
+      if(index != 0) (tmp->left_node)->right_node = new_node;
+      else _head = new_node;
       tmp->left_node = new_node;
       ++_malloc_size;
     }
@@ -91,13 +92,13 @@ class memory_allocator {
       ++_malloc_size;
     }
     void _delete_back() {
+      _delete_empty_check();
       if(_malloc_size == 1) {
         delete _tail;
         delete _head;
         --_malloc_size;
         return;
       }
-      _delete_empty_check();
       alloc_unit<T> *tmp = _tail->left_node;
       (tmp->left_node)->right_node = _tail;
       _tail->left_node = tmp->left_node;

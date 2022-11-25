@@ -49,8 +49,13 @@ class test : protected mylib::memory_allocator<T> {
       }
       cout << '\n';
     }
+    void alloc_at(size_t index) {
+      cout << "allocating at " << index << "...\n";
+      this->_alloc_at(index, alloc_size);
+    }
     test() {
       cout << "allocating..." << '\n';
+      this->_alloc_at(0, alloc_size);
       this->_alloc_at(1, alloc_size);
       this->_alloc_back(alloc_size);
       this->_alloc_back(alloc_size);
@@ -77,4 +82,7 @@ int main() {
   b.custom();
   b.print_value();
   a.print_value();
+  b.alloc_at(0);
+  b.print_value();
+  b.travel();
 }
