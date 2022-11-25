@@ -5,7 +5,7 @@ using namespace std;
 template<class T>
 class test : protected mylib::memory_allocator<T> {
   private:
-    const size_t alloc_size = 100;
+    const size_t alloc_size = 5;
   public:
     void travel_from_head() {
       mylib::alloc_unit<T> *tmp = this->_head;
@@ -53,6 +53,19 @@ class test : protected mylib::memory_allocator<T> {
       cout << "allocating at " << index << "...\n";
       this->_alloc_at(index, alloc_size);
     }
+    void check_pointer() {
+      cout << "traveling with pointer..." << '\n';
+      cout << "head to tail: ";
+      for(mylib::alloc_unit_pointer<T> begin(*this->_head, 0), end(*this->_tail, 0); begin._not_equal_to(end); begin._forward(1)) {
+        cout << begin._get_pointer_value() << ' ';
+      }
+      cout << '\n';
+      cout << "tail to head: ";
+      for(mylib::alloc_unit_pointer<T> begin(*this->_tail, 0), end(*this->_head, 0); begin._not_equal_to(end); begin._backward(1)) {
+        cout << begin._get_pointer_value() << ' ';
+      }
+      cout << '\n';
+    }
     test() {
       cout << "allocating..." << '\n';
       this->_alloc_at(0, alloc_size);
@@ -65,6 +78,7 @@ class test : protected mylib::memory_allocator<T> {
       travel();
       set_value();
       print_value();
+      check_pointer();
     }
     test(const test<T>& other) : mylib::memory_allocator<T>(other) {
       cout << "testing copy..." << '\n';

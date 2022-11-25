@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <stdexcept>
 #include <cstring>
+#include <memory>
 
 #ifndef CONTAINER_BASE_H
 #define CONTAINER_BASE_H
@@ -9,28 +10,137 @@ namespace mylib {
 
 using size_t = std::size_t;
 using out_of_range = std::out_of_range;
+using bad_weak_ptr = std::bad_weak_ptr;
+using length_error = std::length_error;
+using runtime_error = std::runtime_error;
 
+
+#define ALLOC_UNIT_INFO(msg) std::string("mylib::alloc_unit: ") + msg
 
 template <class T> 
-struct alloc_unit {
-  alloc_unit<T> *left_node, *right_node;
-  size_t data_size;
-  T *data;
+class alloc_unit {
+  private:
+    void _data_size_check() {
+      if(data_size == 0) throw length_error(
+          ALLOC_UNIT_INFO("_data_size_check()::allocation size cannot be zero")
+        );
+    }
 
-  alloc_unit() { left_node = right_node = data = nullptr; data_size = 0; }
-  alloc_unit(size_t _data_size, alloc_unit<T> *_left_node, alloc_unit<T> *_right_node) {
-    data = new T[_data_size];
-    data_size = _data_size;
-    left_node = _left_node;
-    right_node = _right_node;
-  }
-  alloc_unit(const alloc_unit<T>& other) {
-    data_size = other.data_size;
-    data = new T[other.data_size];
-    for(size_t i = 0; i < data_size; ++i) data[i] = other.data[i];
-  }
-  ~alloc_unit() { delete [] data; }
+  public:
+    alloc_unit<T> *left_node, *right_node;
+    size_t data_size;
+    T *data;
+
+    alloc_unit() { 
+      left_node = right_node = data = nullptr;
+      data_size = 0; 
+    }
+    alloc_unit(size_t _data_size, alloc_unit<T> *_left_node, alloc_unit<T> *_right_node) {
+      data = new T[_data_size];
+      data_size = _data_size;
+      left_node = _left_node;
+      right_node = _right_node;
+      _data_size_check();
+    }
+    alloc_unit(const alloc_unit<T>& other) {
+      data_size = other.data_size;
+      data = new T[other.data_size];
+      for(size_t i = 0; i < data_size; ++i) data[i] = other.data[i];
+    }
+    ~alloc_unit() { delete [] data; }
 }; // struct alloc_unit
+
+#undef ALLOC_UNIT_INFO
+
+
+#define ALLOC_UNIT_POINTER_INFO(msg) std::string("mylib::alloc_unit_pointer: ") + msg
+
+template<class T>
+class alloc_unit_pointer { // will break if container been modified (so as subclasses)
+  private:
+    void _pointer_valid_check() {
+      if(_ptr == nullptr) throw bad_weak_ptr();
+      if(_data_index >= _ptr->data_size) throw bad_weak_ptr();
+    }
+    void _operate_valid_check(alloc_unit_pointer<T> other) { // rough check
+      if(_container_head != other._container_head) throw runtime_error(
+          ALLOC_UNIT_POINTER_INFO("_operate_valid_check()::two pointer cannot have operation if they are in different conainter or at different time zone")
+        );
+    }
+    size_t _count_distance_to_container_head() {
+      alloc_unit<T> *tmp = _ptr;
+      if(tmp->left_node == nullptr) return _data_index;
+      size_t return_size = _data_index;
+      tmp = tmp->left_node;
+      while(tmp != nullptr) {
+        return_size += tmp->data_size;
+        tmp = tmp->left_node;
+      }
+      return return_size;
+    }
+    alloc_unit<T>* _get_container_head() {
+      alloc_unit<T> *return_ptr = _ptr;
+      while(return_ptr->left_node != nullptr) return_ptr = return_ptr->left_node;
+      return return_ptr;
+    }
+
+  protected:
+    size_t _data_index, _distance_to_container_head;
+    alloc_unit<T> *_ptr, *_container_head;
+
+  public:
+    alloc_unit_pointer(alloc_unit<T>& node, size_t __data_index) {
+      _ptr = &node;
+      _data_index = __data_index;
+      _distance_to_container_head = _count_distance_to_container_head();
+      _container_head = _get_container_head();
+      _pointer_valid_check();
+    }
+    alloc_unit_pointer(const alloc_unit_pointer<T>& other) {
+      _ptr = other._ptr;
+      _data_index = other._data_index;
+      _pointer_valid_check();
+    }
+    ~alloc_unit_pointer() { }
+    alloc_unit_pointer _forward(size_t step) {
+      _data_index += step;
+      while(_data_index >= _ptr->data_size) {
+        _data_index -= _ptr->data_size;
+        _ptr = _ptr->right_node;
+      }
+      _pointer_valid_check();
+      return *this;
+    }
+    alloc_unit_pointer _backward(size_t step) {
+      while(_data_index < step) {
+        step -= _data_index;
+        _ptr = _ptr->left_node;
+        _data_index = _ptr->data_size;
+      }
+      _data_index -= step;
+      _pointer_valid_check();
+      return *this;
+    }
+    T& _get_pointer_value() { return *(_ptr->data + _data_index); }
+    bool _equal_to(const alloc_unit_pointer<T> auptr) {
+      return (
+        _data_index == auptr._data_index &&
+        _ptr->data_size == auptr._ptr->data_size &&
+        _ptr->data == auptr._ptr->data &&
+        _ptr->left_node == auptr._ptr->left_node &&
+        _ptr->right_node == auptr._ptr->right_node
+      );
+    }
+    bool _not_equal_to(const alloc_unit_pointer<T> auptr) {
+      return !(this->_equal_to(auptr));
+    }
+    long long _differ(const alloc_unit_pointer<T> auptr) {
+      _operate_valid_check();
+      return _distance_to_container_head - auptr._distance_to_container_head;
+    }
+};
+
+#undef ALLOC_UNIT_POINTER_INFO
 
 
 #define MEMEORY_ALLOCATOR_INFO(msg) std::string("mylib::memeory_allocator: ") + msg
