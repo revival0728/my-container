@@ -1,10 +1,10 @@
+#ifndef CONTAINER_BASE_H
+#define CONTAINER_BASE_H
+
 #include <cstddef>
 #include <stdexcept>
 #include <cstring>
 #include <memory>
-
-#ifndef CONTAINER_BASE_H
-#define CONTAINER_BASE_H
 
 namespace mylib {
 
@@ -102,7 +102,7 @@ class alloc_unit_pointer { // will break if container been modified (so as subcl
       _pointer_valid_check();
     }
     ~alloc_unit_pointer() { }
-    alloc_unit_pointer _forward(size_t step) {
+    alloc_unit_pointer& _forward(size_t step) {
       _data_index += step;
       while(_data_index >= _ptr->data_size) {
         _data_index -= _ptr->data_size;
@@ -111,7 +111,7 @@ class alloc_unit_pointer { // will break if container been modified (so as subcl
       _pointer_valid_check();
       return *this;
     }
-    alloc_unit_pointer _backward(size_t step) {
+    alloc_unit_pointer& _backward(size_t step) {
       while(_data_index < step) {
         step -= _data_index;
         _ptr = _ptr->left_node;
@@ -121,7 +121,7 @@ class alloc_unit_pointer { // will break if container been modified (so as subcl
       _pointer_valid_check();
       return *this;
     }
-    T& _get_pointer_value() { return *(_ptr->data + _data_index); }
+    T* _get_pointer_value() { return (_ptr->data + _data_index); }
     bool _equal_to(const alloc_unit_pointer<T> auptr) {
       return (
         _data_index == auptr._data_index &&
@@ -132,10 +132,26 @@ class alloc_unit_pointer { // will break if container been modified (so as subcl
       );
     }
     bool _not_equal_to(const alloc_unit_pointer<T> auptr) {
-      return !(this->_equal_to(auptr));
+      return !(_equal_to(auptr));
+    }
+    bool _greater_than(const alloc_unit_pointer<T> auptr) {
+      _operate_valid_check(auptr);
+      return _distance_to_container_head > auptr._distance_to_container_head;
+    }
+    bool _less_than(const alloc_unit_pointer<T> auptr) {
+      _operate_valid_check(auptr);
+      return _distance_to_container_head < auptr._distance_to_container_head;
+    }
+    bool _greater_equal_to(const alloc_unit_pointer<T> auptr) {
+      _operate_valid_check(auptr);
+      return _distance_to_container_head >= auptr._distance_to_container_head;
+    }
+    bool _less_equal_to(const alloc_unit_pointer<T> auptr) {
+      _operate_valid_check(auptr);
+      return _distance_to_container_head <= auptr._distance_to_container_head;
     }
     long long _differ(const alloc_unit_pointer<T> auptr) {
-      _operate_valid_check();
+      _operate_valid_check(auptr);
       return _distance_to_container_head - auptr._distance_to_container_head;
     }
 };

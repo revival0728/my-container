@@ -57,12 +57,12 @@ class test : protected mylib::memory_allocator<T> {
       cout << "traveling with pointer..." << '\n';
       cout << "head to tail: ";
       for(mylib::alloc_unit_pointer<T> begin(*this->_head, 0), end(*this->_tail, 0); begin._not_equal_to(end); begin._forward(1)) {
-        cout << begin._get_pointer_value() << ' ';
+        cout << *begin._get_pointer_value() << ' ';
       }
       cout << '\n';
       cout << "tail to head: ";
       for(mylib::alloc_unit_pointer<T> begin(*this->_tail, 0), end(*this->_head, 0); begin._not_equal_to(end); begin._backward(1)) {
-        cout << begin._get_pointer_value() << ' ';
+        cout << *begin._get_pointer_value() << ' ';
       }
       cout << '\n';
     }
