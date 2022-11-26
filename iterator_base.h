@@ -6,7 +6,9 @@
 
 namespace mylib {
 
+
 #define ITERATOR_BASE_INFO(msg) std::string("mylib::iterator_base: ") + msg
+
 template<class T>
 class iterator_base : private alloc_unit_pointer<T> {
   public:
@@ -33,6 +35,8 @@ class iterator_base : private alloc_unit_pointer<T> {
     bool less_than(const iterator_base<T> other) { this->_less_than(other); }
     bool less_equal_to(const iterator_base<T> other) { this->_less_equal_to(other); }
 };
+
+#undef ITERATOR_BASE_INFO
 
 template<class T>
 class random_access_iterator_base : protected iterator_base<T>, public std::iterator<std::random_access_iterator_tag, T> {
